@@ -13,7 +13,7 @@ from utils import init_video
 def init_videos(exp_name, videos_dir, video_name, out_dir, camera):
     print('visualizing analysis with video:', video_name)
     video = init_video(path.join(videos_dir, video_name))
-    out_file = "{0}/{1}_{2}_detected_likelihood.9.mp4".format(out_dir, exp_name, camera.value)
+    out_file = "{0}/{1}_{2}_detected.mp4".format(out_dir, exp_name, camera.value)
     print('writing analysis video:', out_file)
 
     fps = video.get(cv2.CAP_PROP_FPS)
@@ -57,6 +57,8 @@ def process_camera_input(camera, video, out, points_by_camera, cc, likelihood=0.
     if out is not None:
         out.release()
 
+    cv2.destroyAllWindows()
+
 
 def process_video_with_given_points(exp_name, points_by_camera, out_dir, videos_dir, likelihood=0.9, arena=None):
     cc = CoordinateCalculator(arena=arena)
@@ -75,8 +77,9 @@ def process_video_with_given_points(exp_name, points_by_camera, out_dir, videos_
     cc.save_3d_points(exp_name, os.path.join(out_dir, 'points'))
 
 
-def read_points_csv(csv_path, timestamp):
-    experiment_csvs = [file for file in os.listdir(csv_path) if file.find(timestamp) != -1]
+def read_points_csv(csv_path, timestamp, filter):
+    experiment_csvs = [file for file in os.listdir(csv_path) if file.find(timestamp) != -1
+                       and (filter is None or filter in file)]
     print('read experiments csvs:', experiment_csvs)
     points_by_camera = {}
     for file in experiment_csvs:
@@ -85,7 +88,7 @@ def read_points_csv(csv_path, timestamp):
         with open(path.join(csv_path, file), 'r') as csvfile:
             csv_reader = csv.reader(csvfile)
             for row in csv_reader:
-                if not row[0].isdigit():
+                if not row[0].split('.')[0].isdigit():
                     continue
                 frame_points = []
                 for i in range(4):
@@ -105,15 +108,19 @@ def main():
                         help="directory of the input matrices")
     parser.add_argument("-t", "--timestamp", type=str,
                         help="the timestamp of the experiment")
+    parser.add_argument("-l", "--likelihood", type=float, default=0.9,
+                        help="the minimum likelihood of points to use")
+    parser.add_argument("-f", "--filter", type=str,
+                        help="file name filter")
     parser.add_argument("-v", "--videos_dir", type=str,
                         help="the videos dir if you want to visualize result")
 
     parser.set_defaults(sample=False)
 
     args = parser.parse_args()
-    cameras_points = read_points_csv(args.csv, args.timestamp)
+    cameras_points = read_points_csv(args.csv, args.timestamp, args.filter)
     arena = load_arena(args.matrices_dir, "")  # args.timestamp)
-    process_video_with_given_points(args.timestamp, cameras_points, args.output, args.videos_dir, arena=arena)
+    process_video_with_given_points(args.timestamp, cameras_points, args.output, args.videos_dir, arena=arena, likelihood=float(args.likelihood))
 
 
 if __name__ == '__main__':
