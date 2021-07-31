@@ -24,7 +24,7 @@ def init_videos(exp_name, videos_dir, video_name, out_dir, camera):
     return video, output
 
 
-def process_camera_input(camera, video, out, points_by_camera, cc, likelihood=0.9):
+def process_camera_input(camera, video, out, points_by_camera, cc, likelihood, show):
     skipped = 0
     print('analyzing camera:', camera)
     camera_points = points_by_camera[camera]
@@ -51,8 +51,9 @@ def process_camera_input(camera, video, out, points_by_camera, cc, likelihood=0.
             skipped += 1
 
         if frame is not None:
-            cv2.imshow('frame', frame)
-            cv2.waitKey(1)
+            if show:
+                cv2.imshow('frame', frame)
+                cv2.waitKey(1)
             out.write(frame)
     if out is not None:
         out.release()
@@ -60,7 +61,7 @@ def process_camera_input(camera, video, out, points_by_camera, cc, likelihood=0.
     cv2.destroyAllWindows()
 
 
-def process_video_with_given_points(exp_name, points_by_camera, out_dir, videos_dir, likelihood=0.9, arena=None):
+def process_video_with_given_points(exp_name, points_by_camera, out_dir, videos_dir, show, likelihood=0.9, arena=None):
     cc = CoordinateCalculator(arena=arena)
     videos = []
     if videos_dir is not None:
@@ -73,7 +74,7 @@ def process_video_with_given_points(exp_name, points_by_camera, out_dir, videos_
                 video, out = init_videos(exp_name, videos_dir, v, out_dir, camera)
                 break
 
-        process_camera_input(camera, video, out, points_by_camera, cc, likelihood)
+        process_camera_input(camera, video, out, points_by_camera, cc, likelihood, show)
     cc.save_3d_points(exp_name, os.path.join(out_dir, 'points'))
 
 
@@ -114,13 +115,15 @@ def main():
                         help="file name filter")
     parser.add_argument("-v", "--videos_dir", type=str,
                         help="the videos dir if you want to visualize result")
+    parser.add_argument("-s", "--show_video", type=bool, default=False)
+
 
     parser.set_defaults(sample=False)
 
     args = parser.parse_args()
     cameras_points = read_points_csv(args.csv, args.timestamp, args.filter)
     arena = load_arena(args.matrices_dir, "")  # args.timestamp)
-    process_video_with_given_points(args.timestamp, cameras_points, args.output, args.videos_dir, arena=arena, likelihood=float(args.likelihood))
+    process_video_with_given_points(args.timestamp, cameras_points, args.output, args.videos_dir, args.show_video, arena=arena, likelihood=float(args.likelihood))
 
 
 if __name__ == '__main__':

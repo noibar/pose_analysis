@@ -136,7 +136,7 @@ class CoordinateCalculator:
             for i in range(n_points):
                 row = {}
                 for camera in cameras:
-                    if len(self.points[camera]) < i:
+                    if i > len(self.points[camera]) - 1:
                         continue
                     for j in range(len(self.points[camera][i])):
                         if in_arena(self.points[camera][i][j]):
