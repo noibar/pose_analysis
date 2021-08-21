@@ -24,6 +24,7 @@ def load_arena(dir, timestamp):
     matrices_files = [file for file in os.listdir(dir) if file.find(timestamp) != -1 and file.find('.data') != -1]
     matrices = {}
     for file in matrices_files:
+        print('loading matrix from file:', file)
         f = open(path.join(dir, file), 'rb')
         m = pickle.load(f)
         matrices[file_to_camera(file)] = m
@@ -51,6 +52,9 @@ class Arena:
         return self.cameras_matrices[camera]
 
     def translate_point_to_world(self, camera, p):
+        if camera not in self.cameras_matrices:
+            print('camera is not initialized in arena')
+            return
         r, t = self.cameras_matrices[camera]
         m = np.linalg.inv(np.matrix(r))
         return m * (p - t)
