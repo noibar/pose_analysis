@@ -173,7 +173,7 @@ def get_camera_matrix(videos_dir, video_name, manual_points_file):
     chess_3d_corners = []
     if not ret:
         print('Chessboard was not detected, Need to do manual calibration')
-        should_continue = input('Enter yes for manual calibration')
+        should_continue = input('Enter yes for manual calibration: ')
         if should_continue != "yes":
             print(f'Skipping f{camera} matrix calculation')
             return

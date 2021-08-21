@@ -1,6 +1,7 @@
 import argparse
 import cv2 as cv
 from utils import printProgressBar
+from skspatial.objects import Point, Vector
 import os
 import csv
 import numpy as np
@@ -56,7 +57,8 @@ def draw_given_points(points, out_dir, videos_dir, exp_name, arena):
             if np.isnan(x_points[i]) or np.isnan(y_points[i]) or np.isnan(z_points[i]):
                 continue
             point = (x_points[i] ,y_points[i], z_points[i])
-            dpoint = (dx_points[i] ,dy_points[i], dz_points[i])
+            direction = (dx_points[i] ,dy_points[i], dz_points[i])
+            dpoint = Point(point) + Vector(direction)
             projected, _ = cv.projectPoints(np.array([point, dpoint]), r, t, matrix, dist)
             draw_direction(projected, frame)
             cv.imshow('frame', frame)
@@ -79,7 +81,7 @@ def main():
 
     args = parser.parse_args()
     camera_points = pd.read_csv(args.csv)
-    arena = load_arena(args.matrices_dir, args.timestamp)
+    arena = load_arena(args.matrices_dir, "")#args.timestamp)
     draw_given_points(camera_points, args.output, args.videos_dir, args.timestamp, arena=arena)
 
 

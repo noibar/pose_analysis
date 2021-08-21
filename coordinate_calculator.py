@@ -24,16 +24,23 @@ MODEL_CENTER = (0, 0, 0)
 
 
 def get_head_direction_point(model_points, model_center):
+    '''
+    :param model_points: 3d coordinates of the 4 led centers.
+    :return: the direction of the vector that connects the projection of the
+             model center on the leds plane and the point between the two front leds.
+             This might be changed in the future, depends on the calibration of the
+             head and model direction.
+    '''
     points = Points(model_points)
     plane = Plane.best_fit(points)
-    point_projected = plane.project_point(Point(MODEL_CENTER))
+    center_point_projected = plane.project_point(Point(model_center))
     center_front_point = Points([MODEL_POINTS[0], MODEL_POINTS[1]]).centroid()
-    vector = Vector.from_points(point_projected, center_front_point)
-    head_direction = model_center + vector
-    return head_direction
+    vector = Vector.from_points(center_point_projected, center_front_point)
+    head_direction = vector.unit()
+    return head_direction, center_point_projected
 
 
-HEAD_DIRECTION_POINT = get_head_direction_point(MODEL_POINTS, MODEL_CENTER)
+HEAD_DIRECTION_POINT, PROJECTED_MODEL_CENTER = get_head_direction_point(MODEL_POINTS, MODEL_CENTER)
 
 
 class CoordinateCalculator:
@@ -105,15 +112,18 @@ class CoordinateCalculator:
 
         self.points[camera].append(camera_positions)
         self.centers[camera].append(model_center)
-        self.calculate_head_direction(camera, matrix, dist, rotation_matrix, translation_vector, extrinsic_matrix, img)
+        self.calculate_head_direction(camera, img, rotation_matrix, translation_vector, matrix, dist, extrinsic_matrix)#camera, matrix, dist, rotation_matrix, translation_vector, extrinsic_matrix, img)
 
-    def calculate_head_direction(self, camera, matrix, dist, r, t, extrinsic, img):
-        direction_point_world = np.asarray(self.calculate_world_coordinates(camera, extrinsic, HEAD_DIRECTION_POINT)).reshape(-1)
-        self.directions[camera].append(direction_point_world)
+    #def calculate_head_direction(self, camera, matrix, dist, r, t, extrinsic, img):
+    def calculate_head_direction(self, camera, img, r, t, matrix, dist, extrinsic):
+        model_center_projected_point_world = np.asarray(self.calculate_world_coordinates(camera, extrinsic, PROJECTED_MODEL_CENTER)).reshape(-1)
+        head_direction_point_world = np.asarray(self.calculate_world_coordinates(camera, extrinsic, HEAD_DIRECTION_POINT)).reshape(-1)
+        vector = Vector.from_points(model_center_projected_point_world, head_direction_point_world)
+        self.directions[camera].append(vector.unit())
         if img is None:
             return
 
-        projected, _ = cv.projectPoints(np.array([MODEL_CENTER, HEAD_DIRECTION_POINT]), r, t, matrix, dist)
+        projected, _ = cv.projectPoints(np.array([PROJECTED_MODEL_CENTER, HEAD_DIRECTION_POINT]), r, t, matrix, dist)
         draw_direction(projected, img)
 
     def save_3d_points(self, exp_name, output_path):
